@@ -2,11 +2,14 @@ let skierSpriteNormal, skierSpriteEsquerda, skierSpriteDireita;
 let skier, terrain, obstacles, score, gameOver;
 let leftPressed = false, rightPressed = false;
 let gameSpeed = 2; // Velocidade inicial do jogo
+let treeSprite1, treeSprite2;
 
 function preload() {
   skierSpriteNormal = loadImage('assets/esquiadorNormal.png');
   skierSpriteEsquerda = loadImage('assets/esquiadorEsquerda.png');
   skierSpriteDireita = loadImage('assets/esquiadorDireita.png');
+  treeSprite1 = loadImage('assets/arvore1.png'); // Sprite da árvore 1
+  treeSprite2 = loadImage('assets/arvore2.png'); // Sprite da árvore 2
 }
 
 function setup() {
@@ -55,19 +58,26 @@ class Skier {
 
 class Obstacle {
   constructor(type, x, y) {
-    this.type = type; // 0 para um tipo de obstáculo, 1 para outro
+    this.type = type; // 0 para árvores, 1 para outro obstáculo
     this.x = x;
     this.y = y;
-    this.size = 30; // Tamanho do obstáculo
+    this.size = 30; // Largura do obstáculo
+    this.height = 50; // Altura do obstáculo (aumentada para árvores)
+    this.sprite = null;
+
+    // Escolhe a sprite para árvores (tipo 0)
+    if (this.type === 0) {
+      this.sprite = random([treeSprite1, treeSprite2]);
+    }
   }
 
   draw() {
-    if (this.type === 0) {
-      fill(34, 139, 34); // Cor para o tipo 0
+    if (this.type === 0 && this.sprite) {
+      image(this.sprite, this.x, this.y, this.size, this.height); // Altura ajustada
     } else {
       fill(139, 137, 137); // Cor para o tipo 1
+      rect(this.x, this.y, this.size, this.size); // Desenha o obstáculo
     }
-    rect(this.x, this.y, this.size, this.size); // Desenha o obstáculo
   }
 }
 
