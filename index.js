@@ -2,7 +2,8 @@ let skierSpriteNormal, skierSpriteEsquerda, skierSpriteDireita;
 let skier, terrain, obstacles, score, gameOver;
 let leftPressed = false, rightPressed = false;
 let gameSpeed = 2; // Velocidade inicial do jogo
-let treeSprite1, treeSprite2;
+let treeSprite1, treeSprite2, obstaculoPedra; // Adicionado obstaculoPedra
+let terrainOffset = 0; // Deslocamento acumulado do terreno
 
 function preload() {
   skierSpriteNormal = loadImage('assets/esquiadorNormal.png');
@@ -10,6 +11,7 @@ function preload() {
   skierSpriteDireita = loadImage('assets/esquiadorDireita.png');
   treeSprite1 = loadImage('assets/arvore1.png'); // Sprite da árvore 1
   treeSprite2 = loadImage('assets/arvore2.png'); // Sprite da árvore 2
+  obstaculoPedra = loadImage('assets/obstaculoPedra.png'); // Sprite da pedra
 }
 
 function setup() {
@@ -58,32 +60,43 @@ class Skier {
 
 class Obstacle {
   constructor(type, x, y) {
-    this.type = type; // 0 para árvores, 1 para outro obstáculo
+    this.type = type; // 0 para árvores, 1 para pedras
     this.x = x;
     this.y = y;
-    this.size = 30; // Largura do obstáculo
-    this.height = 50; // Altura do obstáculo (aumentada para árvores)
+    this.size = type === 1 ? 40 : 40; // Pedras menores (30), árvores maiores (40)
+    this.height = type === 1 ? 35 : 70; // Altura ajustada para pedras e árvores
     this.sprite = null;
+    this.flipped = false; // Indica se a sprite está espelhada
 
-    // Escolhe a sprite para árvores (tipo 0)
+    // Escolhe a sprite com base no tipo
     if (this.type === 0) {
-      this.sprite = random([treeSprite1, treeSprite2]);
+      this.sprite = random([treeSprite2]); // Árvores
+    } else if (this.type === 1) {
+      this.sprite = obstaculoPedra; // Pedra
+      this.flipped = random() < 0.5; // 50% de chance de ser espelhada
     }
   }
 
   draw() {
-    if (this.type === 0 && this.sprite) {
-      image(this.sprite, this.x, this.y, this.size, this.height); // Altura ajustada
+    if (this.sprite) {
+      push(); // Salva o estado de transformação
+      if (this.flipped) {
+        scale(-1, 1); // Espelha horizontalmente
+        image(this.sprite, -this.x - this.size, this.y, this.size, this.height);
+      } else {
+        image(this.sprite, this.x, this.y, this.size, this.height);
+      }
+      pop(); // Restaura o estado de transformação
     } else {
-      fill(139, 137, 137); // Cor para o tipo 1
-      rect(this.x, this.y, this.size, this.size); // Desenha o obstáculo
+      fill(139, 137, 137); // Cor padrão para outros tipos
+      rect(this.x, this.y, this.size, this.size);
     }
   }
 }
 
 function draw() {
   if (!gameOver) {
-    background(135, 206, 235); // Fundo azul claro
+    background(224, 225, 215); // Fundo azul claro
     
     // Atualiza o terreno e desenha
     updateTerrain();
@@ -105,6 +118,11 @@ function draw() {
     textSize(16); 
     textAlign(LEFT, TOP); 
     text(`Metros percorridos: ${Math.floor(score / 10)}`, 10, 10); 
+
+    // Aumenta a velocidade a cada 500 pontos
+    if (score % 500 === 0) {
+      gameSpeed += 0.5; // Incrementa a velocidade
+    }
   } else {
     gameOverScreen();
   }
@@ -122,14 +140,16 @@ function generateTerrain() {
 }
 
 function updateTerrain() {
+  terrainOffset += gameSpeed; // Incrementa o deslocamento acumulado
+
   for (let i = 0; i < terrain.length; i++) {
     terrain[i].y -= gameSpeed;
-    
+
     if (terrain[i].y < -50) {
       terrain[i].y = height;
       terrain[i].x = random(-50, 50);
-      
-      if (random() < 0.3) {
+
+      if (random() < 0.8) {
         obstacles.push(new Obstacle(
           floor(random(2)),
           random(50, width - 50),
@@ -141,9 +161,19 @@ function updateTerrain() {
 }
 
 function drawTerrain() {
-  fill(255);
-  for (let tile of terrain) {
-    rect(tile.x, tile.y, tile.width, tile.height);
+  fill(201, 201, 189); // Cor do terreno
+  noStroke(); // Remove as bordas
+
+  for (let y = 0; y < height; y += 10) {
+    beginShape();
+    for (let x = 0; x <= width; x += 10) {
+      let noiseValue = noise(x * 0.01, (y + terrainOffset) * 0.01);
+      let terrainHeight = map(noiseValue, 0, 1, -20, 20); // Ajusta a altura do terreno
+      vertex(x, y + terrainHeight);
+    }
+    vertex(width, y + 10); // Fecha o retângulo
+    vertex(0, y + 10);
+    endShape(CLOSE);
   }
 }
 
