@@ -2,20 +2,19 @@ let skierSpriteNormal, skierSpriteEsquerda, skierSpriteDireita;
 let skier, terrain, obstacles, score, gameOver;
 let leftPressed = false, rightPressed = false;
 let gameSpeed = 2;
-let treeSprite1, treeSprite2, obstaculoPedra; 
+let obstaculoArvore, obstaculoPedra; 
 let terrainOffset = 0; 
 
 function preload() {
   skierSpriteNormal = loadImage('assets/esquiadorNormal.png');
   skierSpriteEsquerda = loadImage('assets/esquiadorEsquerda.png');
   skierSpriteDireita = loadImage('assets/esquiadorDireita.png');
-  treeSprite1 = loadImage('assets/arvore1.png'); 
-  treeSprite2 = loadImage('assets/arvore2.png'); 
+  obstaculoArvore = loadImage('assets/arvore.png'); 
   obstaculoPedra = loadImage('assets/obstaculoPedra.png'); 
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight); 
+  createCanvas(400, 500); 
   skier = new Skier();
   terrain = [];
   obstacles = [];
@@ -24,9 +23,6 @@ function setup() {
   generateTerrain();
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight); 
-}
 class Skier {
   constructor() {
     this.x = 200;
@@ -72,11 +68,11 @@ class Obstacle {
 
     // Escolhe a sprite com base no tipo
     if (this.type === 0) {
-      this.sprite = random([treeSprite2]); // Árvores
-      this.flipped = random() < 0.5; // 50% de chance de ser espelhada
+      this.sprite = obstaculoArvore; 
+      this.flipped = random() < 0.5;
     } else if (this.type === 1) {
-      this.sprite = obstaculoPedra; // Pedra
-      this.flipped = random() < 0.5; // 50% de chance de ser espelhada
+      this.sprite = obstaculoPedra; 
+      this.flipped = random() < 0.5; 
     }
   }
 
@@ -167,7 +163,7 @@ function drawTerrain() {
   fill(236,255,253); // Cor do terreno
   noStroke();
 
-  let gridSize = 3; 
+  let gridSize = 2.5; 
 
   for (let y = 0; y < height; y += gridSize) {
     beginShape();
