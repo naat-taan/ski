@@ -1,21 +1,21 @@
 let skierSpriteNormal, skierSpriteEsquerda, skierSpriteDireita;
 let skier, terrain, obstacles, score, gameOver;
 let leftPressed = false, rightPressed = false;
-let gameSpeed = 2; // Velocidade inicial do jogo
-let treeSprite1, treeSprite2, obstaculoPedra; // Adicionado obstaculoPedra
-let terrainOffset = 0; // Deslocamento acumulado do terreno
+let gameSpeed = 2;
+let treeSprite1, treeSprite2, obstaculoPedra; 
+let terrainOffset = 0; 
 
 function preload() {
   skierSpriteNormal = loadImage('assets/esquiadorNormal.png');
   skierSpriteEsquerda = loadImage('assets/esquiadorEsquerda.png');
   skierSpriteDireita = loadImage('assets/esquiadorDireita.png');
-  treeSprite1 = loadImage('assets/arvore1.png'); // Sprite da árvore 1
-  treeSprite2 = loadImage('assets/arvore2.png'); // Sprite da árvore 2
-  obstaculoPedra = loadImage('assets/obstaculoPedra.png'); // Sprite da pedra
+  treeSprite1 = loadImage('assets/arvore1.png'); 
+  treeSprite2 = loadImage('assets/arvore2.png'); 
+  obstaculoPedra = loadImage('assets/obstaculoPedra.png'); 
 }
 
 function setup() {
-  createCanvas(400, 600);
+  createCanvas(windowWidth, windowHeight); 
   skier = new Skier();
   terrain = [];
   obstacles = [];
@@ -24,6 +24,9 @@ function setup() {
   generateTerrain();
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight); 
+}
 class Skier {
   constructor() {
     this.x = 200;
@@ -47,7 +50,6 @@ class Skier {
   }
 
   draw() {
-    // Escolhe o sprite com base na direção
     if (this.direction === 1) {
       image(skierSpriteEsquerda, this.x, this.y, this.width, this.height);
     } else if (this.direction === -1) {
@@ -60,11 +62,11 @@ class Skier {
 
 class Obstacle {
   constructor(type, x, y) {
-    this.type = type; // 0 para árvores, 1 para pedras
+    this.type = type; 
     this.x = x;
     this.y = y;
-    this.size = type === 1 ? 40 : 40; // Pedras menores (30), árvores maiores (40)
-    this.height = type === 1 ? 35 : 70; // Altura ajustada para pedras e árvores
+    this.size = type === 1 ? 40 : 55; 
+    this.height = type === 1 ? 35 : 80;
     this.sprite = null;
     this.flipped = false; // Indica se a sprite está espelhada
 
@@ -97,7 +99,7 @@ class Obstacle {
 
 function draw() {
   if (!gameOver) {
-    background(150); 
+    background(208,236,235); 
     
     // Atualiza o terreno e desenha
     updateTerrain();
@@ -162,18 +164,22 @@ function updateTerrain() {
 }
 
 function drawTerrain() {
-  fill(201, 201, 189); // Cor do terreno
-  noStroke(); 
+  fill(236,255,253); // Cor do terreno
+  noStroke();
 
-  for (let y = 0; y < height; y += 10) {
+  let gridSize = 3; 
+
+  for (let y = 0; y < height; y += gridSize) {
     beginShape();
-    for (let x = 0; x <= width; x += 10) {
-      let noiseValue = noise(x * 0.013, (y + terrainOffset) * 0.01);
-      let terrainHeight = map(noiseValue, 0, 1, -20, 20);
+    for (let x = 0; x <= width; x += gridSize) {
+      let noiseValue = noise(x * 0.1, (y + terrainOffset) * 0.1);
+      let terrainHeight = map(noiseValue, 0, 1, -10, 10);
+
       vertex(x, y + terrainHeight);
+      vertex(x + gridSize, y + terrainHeight);
     }
-    vertex(width, y + 10);
-    vertex(0, y + 10);
+    vertex(width, y + gridSize);
+    vertex(0, y + gridSize);
     endShape(CLOSE);
   }
 }
