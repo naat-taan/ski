@@ -48,9 +48,9 @@ class Skier {
 
   draw() {
     // Escolhe o sprite com base na direção
-    if (this.direction === -1) {
+    if (this.direction === 1) {
       image(skierSpriteEsquerda, this.x, this.y, this.width, this.height);
-    } else if (this.direction === 1) {
+    } else if (this.direction === -1) {
       image(skierSpriteDireita, this.x, this.y, this.width, this.height);
     } else {
       image(skierSpriteNormal, this.x, this.y, this.width, this.height);
@@ -71,6 +71,7 @@ class Obstacle {
     // Escolhe a sprite com base no tipo
     if (this.type === 0) {
       this.sprite = random([treeSprite2]); // Árvores
+      this.flipped = random() < 0.5; // 50% de chance de ser espelhada
     } else if (this.type === 1) {
       this.sprite = obstaculoPedra; // Pedra
       this.flipped = random() < 0.5; // 50% de chance de ser espelhada
@@ -96,7 +97,7 @@ class Obstacle {
 
 function draw() {
   if (!gameOver) {
-    background(224, 225, 215); // Fundo azul claro
+    background(150); 
     
     // Atualiza o terreno e desenha
     updateTerrain();
@@ -121,7 +122,7 @@ function draw() {
 
     // Aumenta a velocidade a cada 500 pontos
     if (score % 500 === 0) {
-      gameSpeed += 0.5; // Incrementa a velocidade
+      gameSpeed += 0.5; 
     }
   } else {
     gameOverScreen();
@@ -140,7 +141,7 @@ function generateTerrain() {
 }
 
 function updateTerrain() {
-  terrainOffset += gameSpeed; // Incrementa o deslocamento acumulado
+  terrainOffset += gameSpeed; 
 
   for (let i = 0; i < terrain.length; i++) {
     terrain[i].y -= gameSpeed;
@@ -162,16 +163,16 @@ function updateTerrain() {
 
 function drawTerrain() {
   fill(201, 201, 189); // Cor do terreno
-  noStroke(); // Remove as bordas
+  noStroke(); 
 
   for (let y = 0; y < height; y += 10) {
     beginShape();
     for (let x = 0; x <= width; x += 10) {
-      let noiseValue = noise(x * 0.01, (y + terrainOffset) * 0.01);
-      let terrainHeight = map(noiseValue, 0, 1, -20, 20); // Ajusta a altura do terreno
+      let noiseValue = noise(x * 0.013, (y + terrainOffset) * 0.01);
+      let terrainHeight = map(noiseValue, 0, 1, -20, 20);
       vertex(x, y + terrainHeight);
     }
-    vertex(width, y + 10); // Fecha o retângulo
+    vertex(width, y + 10);
     vertex(0, y + 10);
     endShape(CLOSE);
   }
@@ -193,13 +194,50 @@ function updateObstacles() {
 
 function checkCollisions() {
   for (let obs of obstacles) {
-    if (collisionRectRect(
-      skier.x, skier.y, skier.width, skier.height,
-      obs.x, obs.y, obs.size, obs.size
-    )) {
-      gameOver = true;
+    if (obs.type === 0) {
+      // Hitbox triangular para árvores
+      const tx1 = obs.x + obs.size / 2;
+      const ty1 = obs.y;
+      const tx2 = obs.x; 
+      const ty2 = obs.y + obs.height; 
+      const tx3 = obs.x + obs.size; 
+      const ty3 = obs.y + obs.height; 
+
+      if (collisionRectTriangle(
+        skier.x, skier.y, skier.width, skier.height,
+        tx1, ty1, tx2, ty2, tx3, ty3
+      )) {
+        gameOver = true;
+        return;
+      }
+    } else {
+      // Hitbox retangular para pedras
+      if (collisionRectRect(
+        skier.x, skier.y, skier.width, skier.height,
+        obs.x, obs.y, obs.size, obs.height
+      )) {
+        gameOver = true;
+        return;
+      }
     }
   }
+}
+
+function collisionRectTriangle(rx, ry, rw, rh, tx1, ty1, tx2, ty2, tx3, ty3) {
+  return (
+    pointInTriangle(rx, ry, tx1, ty1, tx2, ty2, tx3, ty3) ||
+    pointInTriangle(rx + rw, ry, tx1, ty1, tx2, ty2, tx3, ty3) ||
+    pointInTriangle(rx, ry + rh, tx1, ty1, tx2, ty2, tx3, ty3) ||
+    pointInTriangle(rx + rw, ry + rh, tx1, ty1, tx2, ty2, tx3, ty3)
+  );
+}
+
+function pointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
+  const areaOrig = Math.abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1));
+  const area1 = Math.abs((x1 - px) * (y2 - py) - (x2 - px) * (y1 - py));
+  const area2 = Math.abs((x2 - px) * (y3 - py) - (x3 - px) * (y2 - py));
+  const area3 = Math.abs((x3 - px) * (y1 - py) - (x1 - px) * (y3 - py));
+  return area1 + area2 + area3 === areaOrig;
 }
 
 function collisionRectRect(x1, y1, w1, h1, x2, y2, w2, h2) {
