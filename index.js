@@ -42,34 +42,46 @@ class Skier {
     this.direction = 0;
     this.width = 20;
     this.height = 30;
+    this.rotation = 0; // Adiciona rotação
+    this.isFlyingOut = false; // Indica se está na animação de game over
   }
 
   move(left, right) {
-    if (left) {
-      this.direction = -1;
-    } else if (right) {
-      this.direction = 1;
-    } else {
-      this.direction = 0;
-    }
+    if (!this.isFlyingOut) { // Só permite movimento se não estiver na animação
+      if (left) {
+        this.direction = -1;
+      } else if (right) {
+        this.direction = 1;
+      } else {
+        this.direction = 0;
+      }
 
-    this.x += this.direction * 3;
-    this.x = constrain(this.x, 50, 350);
+      this.x += this.direction * 3;
+      this.x = constrain(this.x, 50, 350);
+    }
   }
 
   draw() {
-    // Desenha a sombra
-    fill(0, 0, 0, 50); // Cor preta com transparência
-    noStroke();
-    ellipse(this.x + this.width / 2, this.y + this.height, this.width, this.height / 3);
-
-    // Desenha o personagem
-    if (this.direction === 1) {
-      image(skierSpriteEsquerda, this.x, this.y, this.width, this.height);
-    } else if (this.direction === -1) {
-      image(skierSpriteDireita, this.x, this.y, this.width, this.height);
+    if (this.isFlyingOut) {
+      // Animação de girar e sair da tela
+      push();
+      translate(this.x + this.width / 2, this.y + this.height / 2);
+      rotate(this.rotation);
+      image(skierSpriteNormal, -this.width / 2, -this.height / 2, this.width, this.height);
+      pop();
     } else {
-      image(skierSpriteNormal, this.x, this.y, this.width, this.height);
+      // Desenha o personagem normalmente
+      fill(0, 0, 0, 50); // Sombra
+      noStroke();
+      ellipse(this.x + this.width / 2, this.y + this.height, this.width, this.height / 3);
+
+      if (this.direction === 1) {
+        image(skierSpriteEsquerda, this.x, this.y, this.width, this.height);
+      } else if (this.direction === -1) {
+        image(skierSpriteDireita, this.x, this.y, this.width, this.height);
+      } else {
+        image(skierSpriteNormal, this.x, this.y, this.width, this.height);
+      }
     }
   }
 }
@@ -124,35 +136,38 @@ function draw() {
     if (!gameOver) {
       background(208, 236, 235);
 
-      skiTrails.push({
-        left: { x: skier.x + skier.width * 0.3, y: skier.y + skier.height },
-        right: { x: skier.x + skier.width * 0.7, y: skier.y + skier.height }
-      });
+      // Adiciona rastros apenas se o personagem não estiver na animação de morte
+      if (!skier.isFlyingOut) {
+        skiTrails.push({
+          left: { x: skier.x + skier.width * 0.3, y: skier.y + skier.height },
+          right: { x: skier.x + skier.width * 0.7, y: skier.y + skier.height }
+        });
 
-      if (skiTrails.length > 600) { 
-        skiTrails.shift(); 
+        if (skiTrails.length > 600) { 
+          skiTrails.shift(); 
+        }
+
+        for (let trail of skiTrails) {
+          trail.left.y -= gameSpeed;
+          trail.right.y -= gameSpeed;
+        }
+
+        stroke(80, 80, 80, 100);
+        strokeWeight(3);
+        noFill();
+
+        beginShape();
+        for (let trail of skiTrails) {
+          curveVertex(trail.left.x, trail.left.y);
+        }
+        endShape();
+
+        beginShape();
+        for (let trail of skiTrails) {
+          curveVertex(trail.right.x, trail.right.y);
+        }
+        endShape();
       }
-
-      for (let trail of skiTrails) {
-        trail.left.y -= gameSpeed;
-        trail.right.y -= gameSpeed;
-      }
-
-      stroke(80, 80, 80, 100);
-      strokeWeight(3);
-      noFill();
-
-      beginShape();
-      for (let trail of skiTrails) {
-        curveVertex(trail.left.x, trail.left.y);
-      }
-      endShape();
-
-      beginShape();
-      for (let trail of skiTrails) {
-        curveVertex(trail.right.x, trail.right.y);
-      }
-      endShape();
 
       updateTerrain();
       drawTerrain();
@@ -160,13 +175,18 @@ function draw() {
       skier.draw();
       updateObstacles();
       checkCollisions();
-      score++;
+
+      // Incrementa o score apenas se o personagem não estiver na animação de morte
+      if (!skier.isFlyingOut) {
+        score++;
+      }
+
       fill(0);
       textSize(16);
       textAlign(LEFT, TOP);
       text(`Metros percorridos: ${Math.floor(score / 10)}`, 10, 10);
 
-      if (score % 500 === 0) {
+      if (score % 500 === 0 && !skier.isFlyingOut) {
         gameSpeed += 0.5;
       }
     } else {
@@ -259,6 +279,11 @@ function updateObstacles() {
 
 // Verifica colisões entre o esquiador e os obstáculos
 function checkCollisions() {
+  // Ignora colisões se o personagem estiver na animação de morte
+  if (skier.isFlyingOut) {
+    return;
+  }
+
   for (let obs of obstacles) {
     if (obs.type === 0) {
       const tx1 = obs.x + obs.size / 2;
@@ -272,7 +297,7 @@ function checkCollisions() {
         skier.x, skier.y, skier.width, skier.height,
         tx1, ty1, tx2, ty2, tx3, ty3
       )) {
-        gameOver = true;
+        startGameOverAnimation();
         return;
       }
     } else {
@@ -280,11 +305,36 @@ function checkCollisions() {
         skier.x, skier.y, skier.width, skier.height,
         obs.x, obs.y, obs.size, obs.height
       )) {
-        gameOver = true;
+        startGameOverAnimation();
         return;
       }
     }
   }
+}
+
+function startGameOverAnimation() {
+  skier.isFlyingOut = true;
+  let phase = "up"; // Fase inicial da animação: subir
+  let flyOutInterval = setInterval(() => {
+    skier.rotation += 0.2; // Faz o personagem girar mais devagar
+
+    if (phase === "up") {
+      skier.y -= 5; // Move o personagem para cima
+      if (skier.y < 20) { // Quando atingir uma altura específica, começa a cair
+        phase = "down"; // Transição para a fase de descida
+      }
+    } else if (phase === "down") {
+      skier.y += 7; // Move o personagem para baixo
+    }
+
+    skier.x += skier.direction * 1.5; // Move na direção atual
+
+    // Finaliza a animação quando o personagem sai da tela
+    if (skier.y > height + 100 || skier.x < -100 || skier.x > width + 100) {
+      clearInterval(flyOutInterval);
+      gameOver = true; // Define o game over após a animação
+    }
+  }, 30);
 }
 
 // Verifica colisão entre um retângulo e um triângulo
@@ -339,12 +389,13 @@ function mouseClicked() {
 
 // Desenha a tela de game over
 function gameOverScreen() {
+  background(0, 0, 0, 5);
   textAlign(CENTER, CENTER);
   textSize(32);
   fill(255, 0, 0);
   text("GAME OVER", width / 2, height / 2 - 50);
   textSize(16);
-  fill(0);
+  fill(255);
   text(`Percorreu ${Math.floor(score / 10)} metros`, width / 2, height / 2);
   text("Clique para recomeçar", width / 2, height / 2 + 30);
 }
