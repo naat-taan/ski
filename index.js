@@ -10,6 +10,7 @@ let terrainOffset = 0;
 let gameState = "start";
 let imageY;
 let imageDirection = 1;
+let skiTrails = [];
 
 // Carrega imagens e fontes necessárias
 function preload() {
@@ -57,6 +58,12 @@ class Skier {
   }
 
   draw() {
+    // Desenha a sombra
+    fill(0, 0, 0, 50); // Cor preta com transparência
+    noStroke();
+    ellipse(this.x + this.width / 2, this.y + this.height, this.width, this.height / 3);
+
+    // Desenha o personagem
     if (this.direction === 1) {
       image(skierSpriteEsquerda, this.x, this.y, this.width, this.height);
     } else if (this.direction === -1) {
@@ -88,18 +95,23 @@ class Obstacle {
   }
 
   draw() {
+    // Desenha a sombra
+    fill(0, 0, 0, 50); 
+    noStroke();
+    ellipse(this.x + this.size / 2, this.y + this.height, this.size * 0.8, this.height / 3);
+
     if (this.sprite) {
-      push();
-      if (this.flipped) {
-        scale(-1, 1);
-        image(this.sprite, -this.x - this.size, this.y, this.size, this.height);
-      } else {
-        image(this.sprite, this.x, this.y, this.size, this.height);
-      }
-      pop();
+        push();
+        if (this.flipped) {
+            scale(-1, 1);
+            image(this.sprite, -this.x - this.size, this.y, this.size, this.height);
+        } else {
+            image(this.sprite, this.x, this.y, this.size, this.height);
+        }
+        pop();
     } else {
-      fill(139, 137, 137);
-      rect(this.x, this.y, this.size, this.size);
+        fill(139, 137, 137);
+        rect(this.x, this.y, this.size, this.size);
     }
   }
 }
@@ -111,6 +123,37 @@ function draw() {
   } else if (gameState === "playing") {
     if (!gameOver) {
       background(208, 236, 235);
+
+      skiTrails.push({
+        left: { x: skier.x + skier.width * 0.3, y: skier.y + skier.height },
+        right: { x: skier.x + skier.width * 0.7, y: skier.y + skier.height }
+      });
+
+      if (skiTrails.length > 600) { 
+        skiTrails.shift(); 
+      }
+
+      for (let trail of skiTrails) {
+        trail.left.y -= gameSpeed;
+        trail.right.y -= gameSpeed;
+      }
+
+      stroke(80, 80, 80, 100);
+      strokeWeight(3);
+      noFill();
+
+      beginShape();
+      for (let trail of skiTrails) {
+        curveVertex(trail.left.x, trail.left.y);
+      }
+      endShape();
+
+      beginShape();
+      for (let trail of skiTrails) {
+        curveVertex(trail.right.x, trail.right.y);
+      }
+      endShape();
+
       updateTerrain();
       drawTerrain();
       skier.move(leftPressed, rightPressed);
@@ -208,7 +251,7 @@ function updateObstacles() {
     obstacles[i].y -= gameSpeed;
     obstacles[i].draw();
 
-    if (obstacles[i].y < -30) {
+    if (obstacles[i].y < -80) {
       obstacles.splice(i, 1);
     }
   }
@@ -259,7 +302,7 @@ function pointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
   const areaOrig = Math.abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1));
   const area1 = Math.abs((x1 - px) * (y2 - py) - (x2 - px) * (y1 - py));
   const area2 = Math.abs((x2 - px) * (y3 - py) - (x3 - px) * (y2 - py));
-  const area3 = Math.abs((x3 - px) * (y1 - py) - (x1 - px) * (y3 - py));
+  const area3 = Math.abs((x3 - px) * (y1 - py) - (x1 - py) * (y3 - py));
   return area1 + area2 + area3 === areaOrig;
 }
 
@@ -313,6 +356,7 @@ function resetGame() {
   skier = new Skier();
   terrain = [];
   obstacles = [];
+  skiTrails = []; // Limpa os rastros
   score = 0;
   generateTerrain();
 }
