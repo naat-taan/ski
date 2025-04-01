@@ -1,28 +1,39 @@
 let skierSpriteNormal, skierSpriteEsquerda, skierSpriteDireita;
+let obstaculoArvore, obstaculoPedra;
+let telaInicial;
+
 let skier, terrain, obstacles, score, gameOver;
 let leftPressed = false, rightPressed = false;
-let gameSpeed = 2;
-let obstaculoArvore, obstaculoPedra; 
-let terrainOffset = 0; 
 
+let gameSpeed = 2;
+let terrainOffset = 0;
+let gameState = "start";
+let imageY;
+let imageDirection = 1;
+
+// Carrega imagens e fontes necessárias
 function preload() {
-  skierSpriteNormal = loadImage('assets/esquiadorNormal.png');
-  skierSpriteEsquerda = loadImage('assets/esquiadorEsquerda.png');
-  skierSpriteDireita = loadImage('assets/esquiadorDireita.png');
-  obstaculoArvore = loadImage('assets/arvore.png'); 
-  obstaculoPedra = loadImage('assets/obstaculoPedra.png'); 
+    skierSpriteNormal = loadImage('assets/esquiadorNormal.png');
+    skierSpriteEsquerda = loadImage('assets/esquiadorEsquerda.png');
+    skierSpriteDireita = loadImage('assets/esquiadorDireita.png');
+    obstaculoArvore = loadImage('assets/arvore.png');
+    obstaculoPedra = loadImage('assets/obstaculoPedra.png');
+    telaInicial = loadImage('assets/telaInicial.png');
 }
 
+// Configura o jogo inicial
 function setup() {
-  createCanvas(400, 500); 
+  createCanvas(400, 500);
   skier = new Skier();
   terrain = [];
   obstacles = [];
   score = 0;
   gameOver = false;
   generateTerrain();
+  imageY = 0;
 }
 
+// Representa o esquiador e suas ações
 class Skier {
   constructor() {
     this.x = 200;
@@ -38,7 +49,7 @@ class Skier {
     } else if (right) {
       this.direction = 1;
     } else {
-      this.direction = 0; 
+      this.direction = 0;
     }
 
     this.x += this.direction * 3;
@@ -56,77 +67,86 @@ class Skier {
   }
 }
 
+// Representa os obstáculos no jogo
 class Obstacle {
   constructor(type, x, y) {
-    this.type = type; 
+    this.type = type;
     this.x = x;
     this.y = y;
-    this.size = type === 1 ? 40 : 55; 
+    this.size = type === 1 ? 40 : 55;
     this.height = type === 1 ? 35 : 80;
     this.sprite = null;
-    this.flipped = false; // Indica se a sprite está espelhada
+    this.flipped = false;
 
-    // Escolhe a sprite com base no tipo
     if (this.type === 0) {
-      this.sprite = obstaculoArvore; 
+      this.sprite = obstaculoArvore;
       this.flipped = random() < 0.5;
     } else if (this.type === 1) {
-      this.sprite = obstaculoPedra; 
-      this.flipped = random() < 0.5; 
+      this.sprite = obstaculoPedra;
+      this.flipped = random() < 0.5;
     }
   }
 
   draw() {
     if (this.sprite) {
-      push(); // Salva o estado de transformação
+      push();
       if (this.flipped) {
-        scale(-1, 1); // Espelha horizontalmente
+        scale(-1, 1);
         image(this.sprite, -this.x - this.size, this.y, this.size, this.height);
       } else {
         image(this.sprite, this.x, this.y, this.size, this.height);
       }
-      pop(); // Restaura o estado de transformação
+      pop();
     } else {
-      fill(139, 137, 137); // Cor padrão para outros tipos
+      fill(139, 137, 137);
       rect(this.x, this.y, this.size, this.size);
     }
   }
 }
 
+// Desenha o jogo com base no estado atual
 function draw() {
-  if (!gameOver) {
-    background(208,236,235); 
-    
-    // Atualiza o terreno e desenha
-    updateTerrain();
-    drawTerrain();
-    
-    // Atualiza o movimento do esquiador
-    skier.move(leftPressed, rightPressed);
+  if (gameState === "start") {
+    drawStartScreen();
+  } else if (gameState === "playing") {
+    if (!gameOver) {
+      background(208, 236, 235);
+      updateTerrain();
+      drawTerrain();
+      skier.move(leftPressed, rightPressed);
+      skier.draw();
+      updateObstacles();
+      checkCollisions();
+      score++;
+      fill(0);
+      textSize(16);
+      textAlign(LEFT, TOP);
+      text(`Metros percorridos: ${Math.floor(score / 10)}`, 10, 10);
 
-    // Desenha o esquiador
-    skier.draw();
-    
-    // Atualiza e desenha os obstáculos
-    updateObstacles();
-    checkCollisions();
-    
-    // Exibe a pontuação (metros percorridos)
-    score++;
-    fill(0); 
-    textSize(16); 
-    textAlign(LEFT, TOP); 
-    text(`Metros percorridos: ${Math.floor(score / 10)}`, 10, 10); 
-
-    // Aumenta a velocidade a cada 500 pontos
-    if (score % 500 === 0) {
-      gameSpeed += 0.5; 
+      if (score % 500 === 0) {
+        gameSpeed += 0.5;
+      }
+    } else {
+      gameOverScreen();
     }
-  } else {
-    gameOverScreen();
   }
 }
 
+// Desenha a tela inicial com animação
+function drawStartScreen() {
+  background(0);
+  imageY += imageDirection * 0.1;
+  if (imageY > 0) {
+    imageY = 0;
+    imageDirection *= -1;
+  } else if (imageY < -10) {
+    imageY = -10;
+    imageDirection *= -1;
+  }
+  image(telaInicial, 0, imageY, width, height + 20);
+}
+
+// Gera o terreno inicial
 function generateTerrain() {
   for (let y = 0; y < height; y += 50) {
     terrain.push({
@@ -138,8 +158,9 @@ function generateTerrain() {
   }
 }
 
+// Atualiza o terreno durante o jogo
 function updateTerrain() {
-  terrainOffset += gameSpeed; 
+  terrainOffset += gameSpeed;
 
   for (let i = 0; i < terrain.length; i++) {
     terrain[i].y -= gameSpeed;
@@ -159,11 +180,12 @@ function updateTerrain() {
   }
 }
 
+// Desenha o terreno na tela
 function drawTerrain() {
-  fill(236,255,253); // Cor do terreno
+  fill(236, 255, 253);
   noStroke();
 
-  let gridSize = 2.5; 
+  let gridSize = 2.5;
 
   for (let y = 0; y < height; y += gridSize) {
     beginShape();
@@ -180,30 +202,28 @@ function drawTerrain() {
   }
 }
 
+// Atualiza os obstáculos na tela
 function updateObstacles() {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     obstacles[i].y -= gameSpeed;
-
-    // Desenha o obstáculo
     obstacles[i].draw();
 
-    // Remove o obstáculo se sair da tela
     if (obstacles[i].y < -30) {
       obstacles.splice(i, 1);
     }
   }
 }
 
+// Verifica colisões entre o esquiador e os obstáculos
 function checkCollisions() {
   for (let obs of obstacles) {
     if (obs.type === 0) {
-      // Hitbox triangular para árvores
       const tx1 = obs.x + obs.size / 2;
       const ty1 = obs.y;
-      const tx2 = obs.x; 
-      const ty2 = obs.y + obs.height; 
-      const tx3 = obs.x + obs.size; 
-      const ty3 = obs.y + obs.height; 
+      const tx2 = obs.x;
+      const ty2 = obs.y + obs.height;
+      const tx3 = obs.x + obs.size;
+      const ty3 = obs.y + obs.height;
 
       if (collisionRectTriangle(
         skier.x, skier.y, skier.width, skier.height,
@@ -213,7 +233,6 @@ function checkCollisions() {
         return;
       }
     } else {
-      // Hitbox retangular para pedras
       if (collisionRectRect(
         skier.x, skier.y, skier.width, skier.height,
         obs.x, obs.y, obs.size, obs.height
@@ -225,6 +244,7 @@ function checkCollisions() {
   }
 }
 
+// Verifica colisão entre um retângulo e um triângulo
 function collisionRectTriangle(rx, ry, rw, rh, tx1, ty1, tx2, ty2, tx3, ty3) {
   return (
     pointInTriangle(rx, ry, tx1, ty1, tx2, ty2, tx3, ty3) ||
@@ -234,6 +254,7 @@ function collisionRectTriangle(rx, ry, rw, rh, tx1, ty1, tx2, ty2, tx3, ty3) {
   );
 }
 
+// Verifica se um ponto está dentro de um triângulo
 function pointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
   const areaOrig = Math.abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1));
   const area1 = Math.abs((x1 - px) * (y2 - py) - (x2 - px) * (y1 - py));
@@ -242,6 +263,7 @@ function pointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
   return area1 + area2 + area3 === areaOrig;
 }
 
+// Verifica colisão entre dois retângulos
 function collisionRectRect(x1, y1, w1, h1, x2, y2, w2, h2) {
   return x1 < x2 + w2 &&
          x1 + w1 > x2 &&
@@ -249,33 +271,44 @@ function collisionRectRect(x1, y1, w1, h1, x2, y2, w2, h2) {
          y1 + h1 > y2;
 }
 
+// Gerencia as teclas pressionadas
 function keyPressed() {
-    if (!gameOver) {
-      if (keyCode === LEFT_ARROW) leftPressed = true;
-      if (keyCode === RIGHT_ARROW) rightPressed = true;
-    }
+  if (!gameOver) {
+    if (keyCode === LEFT_ARROW) leftPressed = true;
+    if (keyCode === RIGHT_ARROW) rightPressed = true;
   }
-  
-  function keyReleased() {
-    if (keyCode === LEFT_ARROW) leftPressed = false;
-    if (keyCode === RIGHT_ARROW) rightPressed = false;
-  }
-
-function mouseClicked() {
-  if (gameOver) resetGame();
 }
 
-function gameOverScreen() {
-    textSize(32);
-    fill(255, 0, 0);
-    text("GAME OVER", 120, 300);
-    textSize(16);
-    fill(0);
-    text(`Percorreu ${score / 10} metros`, 140, 340); 
-    text("Click para recomeçar", 140, 370);
-  }
+// Gerencia as teclas soltas
+function keyReleased() {
+  if (keyCode === LEFT_ARROW) leftPressed = false;
+  if (keyCode === RIGHT_ARROW) rightPressed = false;
+}
 
+// Gerencia cliques do mouse na tela inicial e na tela de game over
+function mouseClicked() {
+  if (gameState === "start") {
+    gameState = "playing";
+  } else if (gameOver) {
+    resetGame();
+  }
+}
+
+// Desenha a tela de game over
+function gameOverScreen() {
+  textAlign(CENTER, CENTER);
+  textSize(32);
+  fill(255, 0, 0);
+  text("GAME OVER", width / 2, height / 2 - 50);
+  textSize(16);
+  fill(0);
+  text(`Percorreu ${Math.floor(score / 10)} metros`, width / 2, height / 2);
+  text("Clique para recomeçar", width / 2, height / 2 + 30);
+}
+
+// Reinicia o jogo
 function resetGame() {
+  gameState = "playing";
   gameOver = false;
   skier = new Skier();
   terrain = [];
