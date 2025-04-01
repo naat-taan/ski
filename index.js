@@ -24,7 +24,8 @@ function preload() {
 
 // Configura o jogo inicial
 function setup() {
-  createCanvas(400, 500);
+  createCanvas(400, 500, P2D);
+  noSmooth();
   skier = new Skier();
   terrain = [];
   obstacles = [];
@@ -158,13 +159,13 @@ function draw() {
 
         beginShape();
         for (let trail of skiTrails) {
-          curveVertex(trail.left.x, trail.left.y);
+          vertex(trail.left.x, trail.left.y); 
         }
         endShape();
 
         beginShape();
         for (let trail of skiTrails) {
-          curveVertex(trail.right.x, trail.right.y);
+          vertex(trail.right.x, trail.right.y);
         }
         endShape();
       }
@@ -176,7 +177,6 @@ function draw() {
       updateObstacles();
       checkCollisions();
 
-      // Incrementa o score apenas se o personagem não estiver na animação de morte
       if (!skier.isFlyingOut) {
         score++;
       }
@@ -279,7 +279,6 @@ function updateObstacles() {
 
 // Verifica colisões entre o esquiador e os obstáculos
 function checkCollisions() {
-  // Ignora colisões se o personagem estiver na animação de morte
   if (skier.isFlyingOut) {
     return;
   }
@@ -312,27 +311,27 @@ function checkCollisions() {
   }
 }
 
+// Animação de morte do personagem
 function startGameOverAnimation() {
   skier.isFlyingOut = true;
-  let phase = "up"; // Fase inicial da animação: subir
+  let phase = "up"; 
   let flyOutInterval = setInterval(() => {
-    skier.rotation += 0.2; // Faz o personagem girar mais devagar
+    skier.rotation += 0.2; 
 
     if (phase === "up") {
-      skier.y -= 5; // Move o personagem para cima
-      if (skier.y < 20) { // Quando atingir uma altura específica, começa a cair
-        phase = "down"; // Transição para a fase de descida
+      skier.y -= 5; 
+      if (skier.y < 20) { 
+        phase = "down"; 
       }
     } else if (phase === "down") {
-      skier.y += 7; // Move o personagem para baixo
+      skier.y += 7; 
     }
 
-    skier.x += skier.direction * 1.5; // Move na direção atual
+    skier.x += skier.direction * 1.5; 
 
-    // Finaliza a animação quando o personagem sai da tela
     if (skier.y > height + 100 || skier.x < -100 || skier.x > width + 100) {
       clearInterval(flyOutInterval);
-      gameOver = true; // Define o game over após a animação
+      gameOver = true; 
     }
   }, 30);
 }
@@ -407,7 +406,7 @@ function resetGame() {
   skier = new Skier();
   terrain = [];
   obstacles = [];
-  skiTrails = []; // Limpa os rastros
+  skiTrails = [];
   score = 0;
   generateTerrain();
 }
